@@ -1,13 +1,15 @@
 # dimaond-square
 
-A Clojure library designed to ... well, that part is up to you.
+A simple implementation and walkthrough of the diamond square algorithm.
 
-## Usage
+See [core.clj][core] for the actual walkthrough.
 
-FIXME
+![terrain](https://raw2.github.com/mediocregopher/diamond-square/master/resources/terrain.png "An example of the terrain generated")
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014 Brian Picciano
 
 Distributed under the Eclipse Public License, the same as Clojure.
+
+[core]: /src/diamond_square/core.clj
