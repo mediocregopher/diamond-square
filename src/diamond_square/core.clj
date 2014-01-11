@@ -243,11 +243,11 @@
   (- (rand-int (inc (* 2 e))) e))
 
 ; The next function is a little weird. It primarily takes in a point, then
-; figures out the distance away from that point that we'll find the points to
-; take the average of. The locf (locator function) is used to return back the
-; actual points to use. For the square portion it'll be the points diagonal from
-; the given one, for the diamond portion it'll be the points to the
-; top/bottom/left/right from the given one.
+; figures out the distance from that point to the points we'll take the average
+; of. The locf (locator function) is used to return back the actual points to
+; use. For the square portion it'll be the points diagonal from the given one,
+; for the diamond portion it'll be the points to the top/bottom/left/right from
+; the given one.
 ;
 ; Once it has those points, it finds the average and applies the error. The
 ; error function is nothing more than a number between -interval and +interval,
