@@ -18,7 +18,7 @@
 ;    decreasing amount of error for each iteration).
 ;
 ; This picture explains it better than I can:
-; /resources/dsalg.png
+; https://raw2.github.com/mediocregopher/diamond-square/master/resources/dsalg.png
 ; (http://nbickford.wordpress.com/2012/12/21/creating-fake-landscapes/dsalg/)
 ;
 ; == The Strategy ==
@@ -96,9 +96,8 @@
   "Generates a grid of the given degree, filled in with zeros"
   [degree]
   (let [gsize (grid-size degree)]
-    (vec (map
-      (fn [_] (vec (repeat gsize 0)))
-      (range gsize)))))
+    (vec (repeat gsize
+      (vec (repeat gsize 0))))))
 
 (comment
   (print-m (blank-grid 3))
@@ -194,7 +193,8 @@
   (let [gsize (grid-size degree)
         start (exp2 (- degree pass))
         interval (* 2 start)
-        coords (map #(+ start (* interval %)) (range (exp2 (dec pass))))] 
+        coords (map #(+ start (* interval %))
+                (range (exp2 (dec pass))))]
     (mapcat (fn [y]
       (map #(vector % y) coords))
       coords)))
@@ -456,7 +456,7 @@
     (terrain 10)
     "resources/terrain.png")
 
-  ; /resources/terrain.png
+  ; https://raw2.github.com/mediocregopher/diamond-square/master/resources/terrain.png
 )
 
 ; == Conclusion ==
