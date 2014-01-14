@@ -1,4 +1,5 @@
-(ns diamond-square.core)
+(ns diamond-square.core
+  (:require [clojure.core.reducers :as r]))
 
 ; == The Goal ==
 ; Create a fractal terrain generator using clojure
@@ -195,8 +196,8 @@
         interval (* 2 start)
         coords (map #(+ start (* interval %))
                 (range (exp2 (dec pass))))]
-    (mapcat (fn [y]
-      (map #(vector % y) coords))
+    (r/mapcat (fn [y]
+      (r/map #(vector % y) coords))
       coords)))
 ;
 ; (grid-square-coords 3 2)
@@ -210,10 +211,10 @@
         interval (exp2 (- degree pass))
         num-coords (grid-size pass)
         coords (map #(* interval %) (range 0 num-coords))]
-    (mapcat (fn [y]
+    (r/mapcat (fn [y]
       (if (even? (/ y interval))
-        (map #(vector % y) (take-nth 2 (drop 1 coords)))
-        (map #(vector % y) (take-nth 2 coords))))
+        (r/map #(vector % y) (take-nth 2 (drop 1 coords)))
+        (r/map #(vector % y) (take-nth 2 coords))))
       coords)))
 
 ; (grid-diamond-coords 3 2)
@@ -302,9 +303,9 @@
   those coordinates, fills in all coordinates for a given pass, returning the
   resultant grid"
   [m fill-f coord-f degree pass]
-  (reduce
-    (fn [macc [x y]] (fill-f macc degree pass x y))
-    m
+  (r/fold
+    (fn ([] m)
+        ([macc [x y]] (fill-f macc degree pass x y)))
     (coord-f degree pass)))
 
 (defn grid-pass
