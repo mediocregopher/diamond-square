@@ -62,6 +62,15 @@
   [& l]
   (int (/ (reduce + l) (count l))))
 
+(defmacro tc
+  "Measures the time taken to run the given body. Returns a vector of the number
+  of milliseconds and the return from the body"
+  [& body]
+  `(let [t1#  (System/currentTimeMillis)
+         res# (do ~@body)
+         t2#  (System/currentTimeMillis)]
+    [(- t2# t1#) res#]))
+
 ; = Grid size =
 ; Since we're starting with a blank grid we need to find out what sizes the
 ; grids can be. For convenience the size (height and width) should be odd, so we
@@ -333,6 +342,9 @@
 (comment
   (print-m
     (terrain 5))
+
+  (first (tc
+    (terrain 9)))
 )
 
 ; == The Results ==
