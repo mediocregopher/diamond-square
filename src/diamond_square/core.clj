@@ -58,8 +58,8 @@
    (+ (get-m m x y) v)))
 
 (defn avg
-  "Returns the truncated average of all the given arguments"
-  [& l]
+  "Returns the truncated average of the given list"
+  [l]
   (int (/ (reduce + l) (count l))))
 
 (defmacro tc
@@ -80,7 +80,6 @@
 ;
 ; The algorithm that fits this is size = 2^n + 1, where 1 <= n. For the rest of
 ; this guide I'll be referring to n as the "degree" of the grid.
-
 
 (def exp2-pre-compute
   (vec (map #(int (Math/pow 2 %)) (range 31))))
@@ -237,10 +236,10 @@
   "Given a grid and an arbitrary number of points (of the form [x y]) returns
   the average of all the given points that are on the map. Any points which are
   off the map are ignored"
-  [m & coords]
+  [m coords]
   (let [grid-size (count m)]
-    (apply avg
-      (map #(apply get-m m %)
+    (avg
+      (map #(get-m m (first %) (second %))
         (filter
           (fn [[x y]]
             (and (< -1 x) (> grid-size x)
@@ -277,7 +276,7 @@
         rightx (+ x interval)
         upy    (- y interval)
         downy  (+ y interval)
-        v      (apply avg-points m
+        v      (avg-points m
                 (locf x y leftx rightx upy downy))]
     (add-m m x y (+ v (error interval)))))
 
