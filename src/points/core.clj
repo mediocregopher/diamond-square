@@ -29,6 +29,7 @@
     { :grid-dims [grid-size grid-size]
       :grid-padding grid-buffer
       :grid-points []
+      :gird-polys []
       :image-dims [imgw imgh]
       :image-buffer buf
       :image-graphic gfx }))
@@ -56,6 +57,20 @@
         points (img-space :grid-points)]
     (map #(point/tri-rotate % rx ry rz) points)))
 
+(defn fill-polys
+  "Like fill-points, but fills in the :grid-polys key of the image space"
+  [img-space polys-fn]
+  (assoc img-space :grid-polys (polys-fn img-space)))
+
+(defn all-point-polys
+  "Creates all possible grid-polys using all grid-points"
+  [img-space]
+  (let [points (img-space :grid-points)]
+    (for [A points
+          B points
+          C points]
+      [A B C])))
+
 (defn dot
   "Draws a dot on the graphic, given the center x/y coordinates and a radius"
   [graphic radius middlex middley]
@@ -81,6 +96,24 @@
               gfx) gfx norm-points))
   img-space)
 
+(defn blot-lines
+  "Given an image space takes all of its polys and draws their outlines to the
+  graphic object"
+  [img-space]
+  (.setPaint (img-space :image-graphic) Color/GRAY)
+  (let [polys (img-space :grid-polys)
+        [imgw imgh] (img-space :image-dims)
+        [gridw gridh] (img-space :grid-dims)
+        gfx (img-space :image-graphic)
+        norm-points-fn (partial point/norm-point-center imgw imgh gridw gridh)
+        norm-polys (map #(map norm-points-fn %) polys)]
+    (reduce (fn [gfx poly]
+              (let [xs (int-array (map #(% 0) poly))
+                    zs (int-array (map #(% 2) poly))]
+                (.drawPolyline gfx xs zs (count poly))
+                gfx)) gfx norm-polys))
+  img-space)
+
 (defn draw
   "Draws the image to the given file as a png"
   [img-space filename]
@@ -92,7 +125,10 @@
     (fill-points shape/unit-cube)
     (fill-points random-scale-points)
     (fill-points random-rotate-points)
+    (fill-polys all-point-polys)
+    (blot-lines)
     (blot-points)
-    (draw "/tmp/img.png"))
+    (draw "/tmp/img.png")
+    )
 
 )
