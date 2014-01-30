@@ -33,6 +33,13 @@
       :image-buffer buf
       :image-graphic gfx }))
 
+(defn fill-points
+  "Given an image space and a function uses the return of that function as the
+  new list of points in the image space. The function takes in the image space
+  object in case it needs it"
+  [img-space points-fn]
+  (assoc img-space :grid-points (points-fn img-space)))
+
 (defn random-scale-points
   "Scales the points in an image space a random amount relative to the origin"
   [img-space]
@@ -40,23 +47,14 @@
         mdim (apply min (img-space :grid-dims))
         r (+ pad (rand-int (- mdim (* 2 pad))))
         points (img-space :grid-points)]
-    (assoc img-space :grid-points
-      (map #(vec (map (partial * r) %)) points))))
+    (map #(vec (map (partial * r) %)) points)))
 
 (defn random-rotate-points
   "Rotates the points in an image space a random amount around the origin"
   [img-space]
   (let [[rx ry rz] [(rand) (rand) (rand)]
         points (img-space :grid-points)]
-    (assoc img-space :grid-points
-      (map #(point/tri-rotate % rx ry rz) points))))
-
-(defn fill-points
-  "Given an image space and a function uses the return of that function as the
-  new list of points in the image space. The function takes in the image space
-  object in case it needs it"
-  [img-space points-fn]
-  (assoc img-space :grid-points (points-fn img-space)))
+    (map #(point/tri-rotate % rx ry rz) points)))
 
 (defn dot
   "Draws a dot on the graphic, given the center x/y coordinates and a radius"
@@ -92,8 +90,8 @@
 
 (-> (init-img-space 1000 1000)
     (fill-points shape/unit-cube)
-    (random-scale-points)
-    (random-rotate-points)
+    (fill-points random-scale-points)
+    (fill-points random-rotate-points)
     (blot-points)
     (draw "/tmp/img.png"))
 
