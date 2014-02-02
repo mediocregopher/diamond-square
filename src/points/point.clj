@@ -184,7 +184,6 @@
       [edge (first (excluded-points % edge))])
     faces))
 
-(require '[clojure.pprint :refer [pprint]])
 (defn incorporate-point
   "Given all the current faces and a point, removes all faces the point has
   line-of-sight to and connects the torn edges to the point. This is done by
