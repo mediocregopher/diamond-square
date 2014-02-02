@@ -38,8 +38,8 @@
   "Given an image space and a function uses the return of that function as the
   new list of points in the image space. The function takes in the image space
   object in case it needs it"
-  [img-space points-fn]
-  (assoc img-space :grid-points (points-fn img-space)))
+  [img-space points-fn & args]
+  (assoc img-space :grid-points (apply points-fn img-space args)))
 
 (defn random-scale-points
   "Scales the points in an image space a random amount relative to the origin"
@@ -65,11 +65,26 @@
 (defn all-point-polys
   "Creates all possible grid-polys using all grid-points"
   [img-space]
-  (let [points (img-space :grid-points)]
-    (for [A points
-          B points
-          C points]
-      [A B C])))
+  (let [points (img-space :grid-points)
+        all-polys (for [A points
+                        B points
+                        C points]
+                    [A B C])]
+    (remove #(apply = %) all-polys)))
+
+(defn center-point
+  "Returns the center-point of a polygon"
+  [poly]
+  (let [xsum (reduce + (map #(% 0) poly))
+        ysum (reduce + (map #(% 1) poly))
+        zsum (reduce + (map #(% 2) poly))
+        n (count poly)]
+    [(/ xsum n) (/ ysum n) (/ zsum n)]))
+
+(defn back-to-front
+  "Orders the polygons in the image space to be farthest away to closest"
+  [img-space]
+  (sort-by center-point (img-space :grid-polys)))
 
 (defn dot
   "Draws a dot on the graphic, given the center x/y coordinates and a radius"
@@ -114,6 +129,23 @@
                 gfx)) gfx norm-polys))
   img-space)
 
+(defn blot-polys
+  [img-space]
+  (let [polys (img-space :grid-polys)
+        [imgw imgh] (img-space :image-dims)
+        [gridw gridh] (img-space :grid-dims)
+        gfx (img-space :image-graphic)
+        norm-points-fn (partial point/norm-point-center imgw imgh gridw gridh)
+        norm-polys (map #(map norm-points-fn %) polys)]
+    (reduce (fn [gfx poly]
+              (let [xs (int-array (map #(% 0) poly))
+                    zs (int-array (map #(% 2) poly))
+                    color (Color. (rand-int 0x1000000))]
+                (.setPaint (img-space :image-graphic) color)
+                (.fillPolygon gfx xs zs (count poly))
+                gfx)) gfx norm-polys))
+  img-space)
+
 (defn draw
   "Draws the image to the given file as a png"
   [img-space filename]
@@ -122,7 +154,7 @@
 (comment
 
 (-> (init-img-space 1000 1000)
-    (fill-points shape/unit-cube)
+    (fill-points shape/blob 30)
     (fill-points random-scale-points)
     (fill-points random-rotate-points)
     (fill-polys all-point-polys)
