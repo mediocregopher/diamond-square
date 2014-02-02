@@ -153,14 +153,18 @@
 
 (comment
 
+(require '[clojure.stacktrace :refer [e print-stack-trace]])
+(try
 (-> (init-img-space 1000 1000)
-    (fill-points shape/blob 30)
+    (fill-points shape/blob 10)
     (fill-points random-scale-points)
-    (fill-points random-rotate-points)
-    (fill-polys all-point-polys)
+    ;(fill-points random-rotate-points)
+    ;(fill-polys all-point-polys)
+    (fill-polys point/conv-hull-fill)
     (blot-lines)
     (blot-points)
     (draw "/tmp/img.png")
     )
+(catch Exception e (print-stack-trace e)))
 
 )
