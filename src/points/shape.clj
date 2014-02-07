@@ -28,7 +28,7 @@
     (let [s (/ 3.6 (Math/sqrt n))
           dz (/ 2.0 n)
           z (- 1 (/ dz 2.0))]
-      (first (reduce
+      (set (first (reduce
         (fn [[nodes z longi] _]
           (let [r (Math/sqrt (- 1 (* z z)))
                 node [(* (Math/cos longi) r) (* (Math/sin longi) r) z]
@@ -36,7 +36,7 @@
                 newlongi (+ longi (/ s r))]
             [(cons node nodes) newz newlongi]))
         ['() z 0]
-        (range n))))))
+        (range n)))))))
 
 (comment
   (blob 20)

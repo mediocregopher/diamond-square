@@ -28,8 +28,8 @@
     (.setPaint gfx Color/BLACK)
     { :grid-dims [grid-size grid-size]
       :grid-padding grid-buffer
-      :grid-points []
-      :gird-polys []
+      :grid-points #{}
+      :gird-polys #{}
       :image-dims [imgw imgh]
       :image-buffer buf
       :image-graphic gfx }))
@@ -41,50 +41,41 @@
   [img-space points-fn & args]
   (assoc img-space :grid-points (apply points-fn img-space args)))
 
+(defn scale-points
+  "Scales the points in an image space by the given multiplier"
+  [img-space amnt]
+  (set (map #(vec (map (partial * amnt) %)) (img-space :grid-points))))
+
 (defn random-scale-points
   "Scales the points in an image space a random amount relative to the origin"
   [img-space]
   (let [pad (img-space :grid-padding)
         mdim (apply min (img-space :grid-dims))
-        r (+ pad (rand-int (- mdim (* 2 pad))))
-        points (img-space :grid-points)]
-    (map #(vec (map (partial * r) %)) points)))
+        r (+ pad (rand-int (- mdim (* 2 pad))))]
+    (scale-points img-space r)))
 
 (defn random-rotate-points
   "Rotates the points in an image space a random amount around the origin"
   [img-space]
   (let [[rx ry rz] [(rand) (rand) (rand)]
         points (img-space :grid-points)]
-    (map #(point/tri-rotate % rx ry rz) points)))
+    (set (map #(point/tri-rotate % rx ry rz) points))))
+
+(defn conv-hull
+  "Returns the set of faces making up the convex hull of the points in the given
+  image space"
+  [img-space]
+  (point/conv-hull (img-space :grid-points)))
 
 (defn fill-polys
   "Like fill-points, but fills in the :grid-polys key of the image space"
   [img-space polys-fn]
   (assoc img-space :grid-polys (polys-fn img-space)))
 
-(defn all-point-polys
-  "Creates all possible grid-polys using all grid-points"
-  [img-space]
-  (let [points (img-space :grid-points)
-        all-polys (for [A points
-                        B points
-                        C points]
-                    [A B C])]
-    (remove #(apply = %) all-polys)))
-
-(defn center-point
-  "Returns the center-point of a polygon"
-  [poly]
-  (let [xsum (reduce + (map #(% 0) poly))
-        ysum (reduce + (map #(% 1) poly))
-        zsum (reduce + (map #(% 2) poly))
-        n (count poly)]
-    [(/ xsum n) (/ ysum n) (/ zsum n)]))
-
 (defn back-to-front
   "Orders the polygons in the image space to be farthest away to closest"
   [img-space]
-  (sort-by center-point (img-space :grid-polys)))
+  (sort-by #((point/center-point %) 1) (img-space :grid-polys)))
 
 (defn dot
   "Draws a dot on the graphic, given the center x/y coordinates and a radius"
@@ -125,7 +116,7 @@
     (reduce (fn [gfx poly]
               (let [xs (int-array (map #(% 0) poly))
                     zs (int-array (map #(% 2) poly))]
-                (.drawPolyline gfx xs zs (count poly))
+                (.drawPolygon gfx xs zs (count poly))
                 gfx)) gfx norm-polys))
   img-space)
 
@@ -143,27 +134,30 @@
                     color (Color. (rand-int 0x1000000))]
                 (.setPaint (img-space :image-graphic) color)
                 (.fillPolygon gfx xs zs (count poly))
-                gfx)) gfx norm-polys))
-  img-space)
+                gfx)) gfx (shuffle norm-polys))
+  img-space))
 
 (defn draw
   "Draws the image to the given file as a png"
   [img-space filename]
-  (ImageIO/write (img-space :image-buffer) "png" (File. filename)))
+  (ImageIO/write (img-space :image-buffer) "png" (File. filename))
+  img-space)
 
 (comment
 
 (require '[clojure.stacktrace :refer [e print-stack-trace]])
 (try
 (-> (init-img-space 1000 1000)
-    (fill-points shape/blob 10)
-    (fill-points random-scale-points)
-    ;(fill-points random-rotate-points)
-    ;(fill-polys all-point-polys)
-    (fill-polys point/conv-hull-fill)
+    (fill-points shape/blob 6)
+    ;(fill-points random-scale-points)
+    (fill-points scale-points 15)
+    (fill-points random-rotate-points)
+    (fill-polys conv-hull)
     (blot-lines)
     (blot-points)
     (draw "/tmp/img.png")
+    ;((constantly nil))
+    (#(def last-img-space %))
     )
 (catch Exception e (print-stack-trace e)))
 

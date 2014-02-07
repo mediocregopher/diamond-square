@@ -1,7 +1,7 @@
 (ns points.point
   (:require [clojure.core.matrix :as matrix]
             [clojure.math.combinatorics :as comb]
-            [clojure.set :refer [intersection]]))
+            [clojure.set :refer [intersection difference]]))
 
 (defn x-rot-matrix
   "Creates a 3d matrix which can rotate a point rad radians around the x-axis"
@@ -94,6 +94,32 @@
     (matrix/mmul (y-rot-matrix (* Math/PI ry)))
     (matrix/mmul (z-rot-matrix (* Math/PI rz)))))
 
+(defn- minmax-coord
+  [pred i points]
+  (reduce #(if (pred (%1 i) (%2 i)) %1 %2) points))
+
+(def min-x "Returns the point with the smallest x" (partial minmax-coord < 0))
+(def max-x "Returns the point with the largest x" (partial minmax-coord > 0))
+(def min-y "Returns the point with the smallest y" (partial minmax-coord < 1))
+(def max-y "Returns the point with the largest y" (partial minmax-coord > 1))
+(def min-z "Returns the point with the smallest z" (partial minmax-coord < 2))
+(def max-z "Returns the point with the largest z" (partial minmax-coord > 2))
+
+(defn center-point
+  "Returns the center-point of a polygon"
+  [poly]
+  (let [xsum (reduce + (map #(% 0) poly))
+        ysum (reduce + (map #(% 1) poly))
+        zsum (reduce + (map #(% 2) poly))
+        n (count poly)]
+    [(/ xsum n) (/ ysum n) (/ zsum n)]))
+
+(defn avg-center-point
+  "Returns the center-point of a seq of polygons"
+  [polys]
+  (center-point
+    (apply concat polys)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Implementing incremental convex hull
 
@@ -117,23 +143,22 @@
   [face point]
   (some #(when (not (do (on-normal? % point))) %) (comb/permutations face)))
 
-(defn excluded-points
-  "Given two lists of points, one a subset of the other, returns all points not
-  in the subset"
-  [big-list small-list]
-  (into '() (apply disj (set big-list) small-list)))
-
 (defn init-tetra
   "Given a seq of points, chooses four randomly and returns a vector containing
   the four faces created by those points (with the face points in the correct
   order) and the points not used in that initial tetrahedron"
   [points]
-  (let [init-points     (take 4 (shuffle points))
+  (let [init-points     (hash-set
+                          (min-x points)
+                          (max-x points)
+                          (max-y points)
+                          (max-z points))
         faces           (comb/combinations init-points 3)
-        expoints        (map #(first (excluded-points init-points %)) faces)
-        faces-w-points  (map vector faces expoints)
-        oriented-faces  (map #(apply orient-face %) faces-w-points)
-        leftover-points (excluded-points points init-points)]
+        faces-w-points  (map
+                          #(vector % (first (apply disj init-points %)))
+                          faces)
+        oriented-faces  (set (map #(apply orient-face %) faces-w-points))
+        leftover-points (difference points init-points)]
     [oriented-faces leftover-points]))
 
 (defn init-tetra-fill
@@ -168,49 +193,40 @@
   [faces point]
   (filter-some #(on-normal? % point) faces))
 
-(defn shared-edge
-  "Returns the edge shared by two faces, or nil if they don't share an edge"
-  [face1 face2]
-  (let [edge-set (intersection (set face1) (set face2))]
-    (if (not= 2 (count edge-set)) nil (vec edge-set))))
+(defn faces-to-outer-edges
+  "Given a seq of faces, returns all outer edges of those faces. That is, all
+  edges where the edge isn't found in another face which is in the given seq.
+  The returned value is a seq of sets, each set being of two points"
+  [faces]
+  (->> faces
+    (mapcat #(map set (comb/combinations % 2)))
+    (group-by identity)
+    (filter-map (fn [[k v]] (when (= (count v) 1) k)))))
 
-(defn shared-edge-data
-  "Given a seq of faces and a face, returns a list with an item representing
-  each edge shared by the face with one of the faces. Each item is a vector
-  containing the shared edge and the non-shared point in the other face"
-  [faces face]
-  (filter-map
-    #(when-let [edge (shared-edge face %)]
-      [edge (first (excluded-points % edge))])
-    faces))
+(defn- point-to-orient
+  "Returns the point to orient new faces to"
+  [faces]
+  (case (count faces)
+    0 [0 0 0]
+    1 (center-point (first faces))
+      (avg-center-point faces)))
 
 (defn incorporate-point
   "Given all the current faces and a point, removes all faces the point has
   line-of-sight to and connects the torn edges to the point. This is done by
   looking at each edge, concating point to it (to create a face), and calling
-  orient-face on this new face, with the old point being the reference for which
-  way to orient the new face."
+  orient-face on this new face, with the face oriented to the center-point of
+  all the removed faces (which are presumably behind the new faces"
   [faces point]
-  (let [[removed-faces remaining-faces] (remove-los-faces faces point)]
-    (reduce
-      (fn [rem-faces rmd-face]
-        (let [edge-data (shared-edge-data
-                          (remove #(= % rmd-face) faces) rmd-face)]
-          (concat rem-faces
-            (map
-              (fn [[edge oldpoint]]
-                (orient-face (cons point edge) oldpoint))
-              edge-data))))
-      remaining-faces
-      removed-faces)))
+  (let [[removed-faces remaining-faces] (remove-los-faces faces point)
+        torn-edges (faces-to-outer-edges removed-faces)
+        orient-point (point-to-orient removed-faces)]
+    (concat remaining-faces
+      (map #(orient-face (cons point %) orient-point) torn-edges))))
 
 (defn conv-hull
   "Given a seq of points, returns a seq of all faces making up the convex hull
   (outermost shell) of those points"
   [points]
   (let [[faces lpoints] (init-tetra points)]
-    (reduce #(do (incorporate-point %1 %2)) faces lpoints)))
-
-(defn conv-hull-fill
-  [img-space]
-  (conv-hull (img-space :grid-points)))
+    (set (reduce #(incorporate-point %1 %2) faces lpoints))))
