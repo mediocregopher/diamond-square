@@ -134,7 +134,7 @@
                     color (Color. (rand-int 0x1000000))]
                 (.setPaint (img-space :image-graphic) color)
                 (.fillPolygon gfx xs zs (count poly))
-                gfx)) gfx (shuffle norm-polys))
+                gfx)) gfx norm-polys)
   img-space))
 
 (defn draw
@@ -148,13 +148,15 @@
 (require '[clojure.stacktrace :refer [e print-stack-trace]])
 (try
 (-> (init-img-space 1000 1000)
-    (fill-points shape/blob 6)
+    (fill-points shape/blob 50)
     ;(fill-points random-scale-points)
     (fill-points scale-points 15)
     (fill-points random-rotate-points)
     (fill-polys conv-hull)
-    (blot-lines)
-    (blot-points)
+    (fill-polys back-to-front)
+    ;(blot-lines)
+    ;(blot-points)
+    (blot-polys)
     (draw "/tmp/img.png")
     ;((constantly nil))
     (#(def last-img-space %))
