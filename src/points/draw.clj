@@ -1,17 +1,24 @@
 (ns points.draw
   (:require [points.point :as point])
   (:import java.awt.Color
+           java.awt.image.BufferedImage
            javax.imageio.ImageIO
            java.io.File))
 
-(defn dot
-  "Draws a dot on the graphic, given the center x/y coordinates and a radius"
-  [graphic radius middlex middley]
-  (.fillOval graphic
-    (- middlex radius)
-    (- middley radius)
-    (* 2 radius)
-    (* 2 radius)))
+(defn blank!
+  "Given an image space, colors the whole thing image buffer white, creating and
+  setting a new image-buffer if one wasn't there"
+  [img-space]
+  (let [[imgw imgh] (img-space :image-dims)
+        buf (or (img-space :image-buffer)
+                (BufferedImage. imgw imgh BufferedImage/TYPE_INT_RGB))
+        gfx (or (img-space :image-graphic)
+                (.createGraphics buf))]
+    (.setPaint gfx Color/WHITE)
+    (.fillRect gfx 0 0 (dec imgw) (dec imgh))
+    (assoc img-space
+      :image-buffer buf
+      :image-graphic gfx)))
 
 (defn blot-points!
   "Given an image space takes all of its points and draws them to the graphic
@@ -25,8 +32,11 @@
         norm-points-fn (partial point/norm-point-center imgw imgh gridw gridh)
         norm-points (map norm-points-fn points)]
     (reduce (fn [gfx [normx normy normz]]
-              (dot gfx normy normx normz)
-              gfx) gfx norm-points))
+              (.fillOval gfx
+                (- normx normy)
+                (- normz normy)
+                (* 2 normy)
+                (* 2 normy)) gfx) gfx norm-points))
   img-space)
 
 (defn blot-lines!
