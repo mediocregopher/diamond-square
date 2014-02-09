@@ -223,6 +223,8 @@
 (defn conv-hull
   "Given a seq of points, returns a seq of all faces making up the convex hull
   (outermost shell) of those points"
-  [points]
-  (let [[faces lpoints] (init-tetra points)]
-    (set (reduce #(incorporate-point %1 %2) faces lpoints))))
+  [img-space]
+  (let [points (img-space :grid-points)
+        [faces lpoints] (init-tetra points)]
+    (assoc img-space :grid-polys
+      (set (reduce #(incorporate-point %1 %2) faces lpoints)))))
