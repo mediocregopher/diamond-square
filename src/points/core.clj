@@ -72,11 +72,6 @@
   [img-space polys-fn]
   (assoc img-space :grid-polys (polys-fn img-space)))
 
-(defn back-to-front
-  "Orders the polygons in the image space to be farthest away to closest"
-  [img-space]
-  (sort-by #((point/center-point %) 1) (img-space :grid-polys)))
-
 (defn dot
   "Draws a dot on the graphic, given the center x/y coordinates and a radius"
   [graphic radius middlex middley]
@@ -127,7 +122,8 @@
         [gridw gridh] (img-space :grid-dims)
         gfx (img-space :image-graphic)
         norm-points-fn (partial point/norm-point-center imgw imgh gridw gridh)
-        norm-polys (map #(map norm-points-fn %) polys)]
+        sorted-polys (sort-by #((point/center-point %) 1) polys)
+        norm-polys (map #(map norm-points-fn %) sorted-polys)]
     (reduce (fn [gfx poly]
               (let [xs (int-array (map #(% 0) poly))
                     zs (int-array (map #(% 2) poly))
@@ -149,13 +145,9 @@
 (try
 (-> (init-img-space 1000 1000)
     (fill-points shape/blob 50)
-    ;(fill-points random-scale-points)
     (fill-points scale-points 15)
     (fill-points random-rotate-points)
     (fill-polys conv-hull)
-    (fill-polys back-to-front)
-    ;(blot-lines)
-    ;(blot-points)
     (blot-polys)
     (draw "/tmp/img.png")
     ;((constantly nil))
