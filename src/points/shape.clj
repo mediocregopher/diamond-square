@@ -56,4 +56,4 @@
   r=1 sphere"
   [n]
   (let [rand-fn #(point/tri-rotate % (rand 2) (rand 2) (rand 2))]
-    (set (take n (repeatedly #(rand-fn [1 0 0]))))))
+    (set (take n (repeatedly #(rand-fn [(rand) 0 0]))))))
