@@ -148,11 +148,7 @@
   the four faces created by those points (with the face points in the correct
   order) and the points not used in that initial tetrahedron"
   [points]
-  (let [init-points     (hash-set
-                          (min-x points)
-                          (max-x points)
-                          (max-y points)
-                          (max-z points))
+  (let [init-points     (set (take 4 points))
         faces           (comb/combinations init-points 3)
         faces-w-points  (map
                           #(vector % (first (apply disj init-points %)))
