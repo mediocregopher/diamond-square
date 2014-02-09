@@ -19,6 +19,6 @@
   "Rotates the points in an image space a random amount around the origin"
   [img-space]
   (assoc img-space :grid-points
-    (let [[rx ry rz] [(rand) (rand) (rand)]
+    (let [[rx ry rz] [(rand 2) (rand 2) (rand 2)]
           points (img-space :grid-points)]
       (set (map #(point/tri-rotate % rx ry rz) points)))))

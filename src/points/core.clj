@@ -49,10 +49,11 @@
 (require '[clojure.stacktrace :refer [e print-stack-trace]])
 (try
 (-> (init-img-space 2000 2000)
-    (shape/fill-shape shape/blob 100)
+    (shape/fill-shape shape/blob-sphere 100)
     (transform/random-scale-points)
     (transform/random-rotate-points)
     (point/conv-hull)
+    ;(draw/blot-lines!)
     ;(draw/blot-points!)
     (draw/blot-polys!)
     (draw/write! "/tmp/img.png")

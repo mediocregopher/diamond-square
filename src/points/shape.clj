@@ -1,4 +1,5 @@
-(ns points.shape)
+(ns points.shape
+  (:require [points.point :as point]))
 
 (defn fill-shape
   "Given an img-space, a function which returns a set of points, and the
@@ -24,7 +25,7 @@
   []
   (cube -0.5 -0.5 -0.5 0.5 0.5 0.5))
 
-(defn blob
+(defn sphere
   "Generates a set of n points representing something close to a sphere
 
   Code for this was basically stolen straight from:
@@ -43,6 +44,16 @@
       ['() z 0]
       (range n))))))
 
-(comment
-  (blob 20)
-)
+(defn blob-cube
+  "Generates a set of n points whose coordinates are randomly spread throughout
+  a 1x1x1 cube"
+  [n]
+  (let [rand-fn #(- 0.5 (rand))]
+    (set (take n (repeatedly #(vector (rand-fn) (rand-fn) (rand-fn)))))))
+
+(defn blob-sphere
+  "Generates a set of n points whose coordinates are randomly spread through an
+  r=1 sphere"
+  [n]
+  (let [rand-fn #(point/tri-rotate % (rand 2) (rand 2) (rand 2))]
+    (set (take n (repeatedly #(rand-fn [1 0 0]))))))
