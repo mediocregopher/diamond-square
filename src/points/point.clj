@@ -29,62 +29,6 @@
   [A B nA nB x]
   (+ nA (/ (* (- x A) (- nB nA)) (- B A))))
 
-; norm-point takes a point from this grid:
-
-;                 ^ z (gridh)
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-; <-------------------------------> x (gridw)
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-;                 |
-;                 v
-;
-; To this grid:
-;
-; -------------------> x (imgw)
-; |
-; |
-; |
-; |
-; |
-; |
-; |
-; v z (imgh)
-
-; While keeping the same relative shape and distances
-
-(defn norm-point
-  "Normalizes a point from the original cartesian coordinate system into the
-  coordinate system used for image creation"
-  [imgw imgh gridw gridh [x y z]]
-  [ (norm (- gridw) gridw 0 imgw x)
-    (norm (- gridh) gridh 1 (int (* imgw 0.01)) y)
-    (- imgh (norm (- gridh) gridh 0 imgh z)) ])
-
-(defn norm-point-center
-  "Same as norm-point, but doesn't stretch the new points to fit the image
-  dimensions. Instead, centers them along the longer axis"
-  [imgw imgh gridw gridh [x y z]]
-  (if (> imgw imgh)
-    (let [cent-imgw (int (* gridw (/ imgh gridh)))
-          pad (int (/ (- imgw cent-imgw) 2))
-          [x y z] (norm-point cent-imgw imgh gridw gridh [x y z])]
-      [(+ pad x) y z])
-    (let [cent-imgh (int (* gridh (/ imgw gridw)))
-          pad (int (/ (- imgh cent-imgh) 2))
-          [x y z] (norm-point imgw cent-imgh gridw gridh [x y z])]
-      [x y (+ pad z)])))
-
 (defn tri-rotate
   "Rotates a point first about the x, then y, then z axiis by the number of
   radians given for each axis"

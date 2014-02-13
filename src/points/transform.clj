@@ -9,11 +9,8 @@
 
 (defn random-scale-points
   "Scales the points in an image space a random amount relative to the origin"
-  [img-space]
-  (let [pad (img-space :grid-padding)
-        mdim (apply min (img-space :grid-dims))
-        r (+ pad (rand-int (- mdim (* 2 pad))))]
-    (scale-points img-space r)))
+  [img-space limit]
+  (scale-points img-space (inc (rand (dec limit)))))
 
 (defn random-rotate-points
   "Rotates the points in an image space a random amount around the origin"
