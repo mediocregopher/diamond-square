@@ -16,6 +16,23 @@
 (comment
 
 (require '[clojure.stacktrace :refer [e print-stack-trace]])
+(require '[clojure.pprint :refer [pprint]])
+
+(defn point-in-orbit
+  [i points radius]
+  (let [radians (* i (/ (* 2 Math/PI) points))]
+    [(* radius (Math/cos radians)) (* radius (Math/sin radians)) 0]))
+
+(defn draw-orbit
+  [img-space points radius]
+  (doseq [i (range points)]
+    (let [light-source (point-in-orbit i points radius)]
+      (-> img-space
+        (draw/add-light-source light-source)
+        (draw/blank!)
+        (draw/blot! draw/poly! (draw/shaded draw/pink 0.1))
+        (draw/write! (str "/tmp/img" i ".png"))))))
+
 (try
 (-> (init-img-space 2000 2000)
     (shape/fill-shape shape/sphere 100)
@@ -23,14 +40,11 @@
     (transform/random-rotate-points)
     (point/conv-hull)
 
+    (draw/add-light-source [4000 2000 4000])
     (draw/blank!)
-    (draw/blot!
-      (draw/compose
-        [draw/poly! draw/rand-color]
-        [draw/line! draw/black 3]))
-
+    (draw/blot! draw/poly! (draw/shaded draw/pink 0.5))
     (draw/write! "/tmp/img.png")
-    ;((constantly nil))
+
     (#(def last-img-space %))
     )
 (catch Exception e (print-stack-trace e)))

@@ -42,6 +42,8 @@
   [pred i points]
   (reduce #(if (pred (%1 i) (%2 i)) %1 %2) points))
 
+;; These could be redefined in terms of cmp-points-property, and we could
+;; get rid of minmax-coord. But idgaf right now, mvp here I come!!!
 (def min-x "Returns the point with the smallest x" (partial minmax-coord < 0))
 (def max-x "Returns the point with the largest x" (partial minmax-coord > 0))
 (def min-y "Returns the point with the smallest y" (partial minmax-coord < 1))
@@ -63,6 +65,23 @@
   [polys]
   (center-point
     (apply concat polys)))
+
+(defn- cmp-points-property
+  [pred prop-fn points]
+  (reduce #(if (pred (prop-fn %1) (prop-fn %2)) %1 %2) points))
+
+(defn point-distance
+  "Wrapper around matrix/distance so we don't have to export matrix everywhere"
+  [a b]
+  (matrix/distance a b))
+
+(defn min-max-from
+  "Given a point and a set of points, returns the point in the set the closest
+  and the point in the set farthest from the given point"
+  [point points]
+  (let [dist-fn (partial point-distance point)]
+    [(cmp-points-property < dist-fn points)
+     (cmp-points-property > dist-fn points)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Implementing incremental convex hull

@@ -45,7 +45,7 @@
   coordinate system used for image creation"
   [imgw imgh gridw gridh [x y z]]
   [ (point/norm (- gridw) gridw 0 imgw x)
-    (point/norm (- gridh) gridh 1 (int (* imgw 0.01)) y)
+    y ;(point/norm (- gridh) gridh 1 (int (* imgw 0.01)) y)
     (- imgh (point/norm (- gridh) gridh 0 imgh z)) ])
 
 (defn- norm-point-center
@@ -56,11 +56,11 @@
     (let [cent-imgw (int (* gridw (/ imgh gridh)))
           pad (int (/ (- imgw cent-imgw) 2))
           [x y z] (norm-point cent-imgw imgh gridw gridh [x y z])]
-      [(+ pad x) y z])
+      [(+ pad x) 0 z])
     (let [cent-imgh (int (* gridh (/ imgw gridw)))
           pad (int (/ (- imgh cent-imgh) 2))
           [x y z] (norm-point imgw cent-imgh gridw gridh [x y z])]
-      [x y (+ pad z)])))
+      [x 0 (+ pad z)])))
 
 (defn- norm-points
   "Normalizes the given points from the 3d grid-space to the 2d image space"
@@ -75,15 +75,31 @@
   [img-space polys]
   (map (partial norm-points img-space) polys))
 
+(defn add-light-source
+  "Adds a light source at the given position to the img-space. The position of
+  the light source, along with the closest and farthest distanced points in the
+  img-space, are stored"
+  [img-space pos]
+  (let [points (img-space :grid-points)
+        [closest farthest] (point/min-max-from pos points)
+        prev-sources (img-space :light-sources '())]
+    (assoc img-space
+      :light-sources (cons {:pos pos
+                            :min (point/point-distance pos closest)
+                            :max (point/point-distance pos farthest)}
+                           prev-sources))))
+
 (defn blank!
   "Given an image space, colors the whole thing image buffer white, creating and
-  setting a new image-buffer if one wasn't there"
+  setting a new image-buffer if one wasn't there. It also fills in some stats
+  that will be useful in other functions"
   [img-space]
   (let [[imgw imgh] (img-space :image-dims)
         buf (or (img-space :image-buffer)
                 (BufferedImage. imgw imgh BufferedImage/TYPE_INT_RGB))
         gfx (or (img-space :image-graphic)
-                (.createGraphics buf))]
+                (.createGraphics buf))
+        ys (mapcat (partial map #(% 1)) (img-space :grid-polys))]
     (.setPaint gfx Color/WHITE)
     (.fillRect gfx 0 0 (dec imgw) (dec imgh))
     (assoc img-space
@@ -94,21 +110,23 @@
   "Given an image spaces draws all of its polys such that they are drawn
   back-to-front"
   [img-space blot-fn & blot-fn-args]
-  (reduce
-    #(apply blot-fn %1 %2 blot-fn-args)
-    img-space
-    (norm-polys img-space
-      (sort-by #((point/center-point %) 1)
-        (img-space :grid-polys))))
-  img-space)
+  (let [sorted-polys (sort-by #((point/center-point %) 1)
+                      (img-space :grid-polys))]
+    (reduce
+      (fn [img-space [poly norm-poly]]
+        (apply blot-fn img-space poly norm-poly blot-fn-args))
+      img-space
+      (map vector
+        sorted-polys (norm-polys img-space sorted-polys)))
+    img-space))
 
 (defn point!
   "Draws the given poly's points to the img-space using the given color
   function"
-  [img-space poly color-fn]
+  [img-space _ norm-poly color-fn]
   (let [gfx (img-space :image-graphic)
-        color (color-fn img-space poly)
-        points (set (flatten poly))]
+        color (color-fn img-space norm-poly)
+        points (set (flatten norm-poly))]
   (.setPaint gfx color)
   (reduce
     (fn [gfx [normx normy normz]]
@@ -118,34 +136,34 @@
         (* 2 normy)
         (* 2 normy)) gfx)
     (img-space :image-graphic)
-    poly))
+    norm-poly))
   img-space)
 
 (defn line!
   "Draws the given poly's edges to the img-space using the given color function"
-  ([img-space poly color-fn]
-    (line! img-space poly color-fn 1))
-  ([img-space poly color-fn thickness]
+  ([img-space poly norm-poly color-fn]
+    (line! img-space poly norm-poly color-fn 1))
+  ([img-space _ norm-poly color-fn thickness]
     (let [gfx (img-space :image-graphic)
-          xs (int-array (map #(% 0) poly))
-          zs (int-array (map #(% 2) poly))
-          color (color-fn img-space poly)
+          xs (int-array (map #(% 0) norm-poly))
+          zs (int-array (map #(% 2) norm-poly))
+          color (color-fn img-space norm-poly)
           origStroke (.getStroke gfx)]
       (.setPaint gfx color)
       (.setStroke gfx (BasicStroke. thickness))
-      (.drawPolyline gfx xs zs (count poly))
+      (.drawPolyline gfx xs zs (count norm-poly))
       (.setStroke gfx origStroke))
     img-space))
 
 (defn poly!
   "Draws the given poly to the img-space using the given color function"
-  [img-space poly color-fn]
+  [img-space poly norm-poly color-fn]
   (let [gfx (img-space :image-graphic)
-        xs (int-array (map #(% 0) poly))
-        zs (int-array (map #(% 2) poly))
-        color (color-fn img-space poly)]
+        xs (int-array (map #(% 0) norm-poly))
+        zs (int-array (map #(% 2) norm-poly))
+        color (color-fn img-space poly norm-poly)]
     (.setPaint gfx color)
-    (.fillPolygon gfx xs zs (count poly)))
+    (.fillPolygon gfx xs zs (count norm-poly)))
   img-space)
 
 (defn rand-color
@@ -155,6 +173,37 @@
 
 (def gray "Always returns gray" (constantly Color/GRAY))
 (def black "Always returns black" (constantly Color/BLACK))
+(def blue "Always returns blue" (constantly Color/BLUE))
+(def pink "Always returns ping" (constantly Color/PINK))
+
+(defn- squash
+  [minv maxv v]
+  (if (< v minv) minv
+    (if (> v maxv) maxv
+      v)))
+
+(defn- color-offset
+  "Offsets all components of an RGB Color object by the given amount (can be
+  positive or negative"
+  [color offset]
+  (Color.
+    (squash 0 255 (+ offset (.getRed color)))
+    (squash 0 255 (+ offset (.getGreen color)))
+    (squash 0 255 (+ offset (.getBlue color)))))
+
+(defn shaded
+  ([color-fn]
+    (shaded color-fn 1))
+  ([color-fn shading-scaler]
+    (fn [img-space poly _]
+      (let [base-color (color-fn img-space poly)
+            center (point/center-point poly)
+            light (first (img-space :light-sources))
+            [pos closest farthest] [(light :pos) (light :min) (light :max)]
+            dis (point/point-distance center pos)
+            shade-ceil (* 127 shading-scaler)
+            offset (int (point/norm closest farthest shade-ceil -128 dis))]
+        (color-offset base-color offset)))))
 
 (defn compose
   "Compose sets of draw-fn, color-fn, and any additional args into a single
