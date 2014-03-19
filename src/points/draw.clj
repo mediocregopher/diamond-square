@@ -2,6 +2,7 @@
   (:require [points.point :as point])
   (:import java.awt.Color
            java.awt.image.BufferedImage
+           java.awt.RenderingHints
            java.awt.BasicStroke
            javax.imageio.ImageIO
            java.io.File))
@@ -101,6 +102,9 @@
                 (.createGraphics buf))
         ys (mapcat (partial map #(% 1)) (img-space :grid-polys))]
     (.setPaint gfx Color/WHITE)
+    (.setRenderingHint gfx
+      RenderingHints/KEY_ANTIALIASING
+      RenderingHints/VALUE_ANTIALIAS_ON)
     (.fillRect gfx 0 0 (dec imgw) (dec imgh))
     (assoc img-space
       :image-buffer buf
