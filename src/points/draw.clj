@@ -90,6 +90,11 @@
                             :max (point/point-distance pos farthest)}
                            prev-sources))))
 
+(def hints
+  (list [RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON]
+        [RenderingHints/KEY_STROKE_CONTROL RenderingHints/VALUE_STROKE_PURE]
+        [RenderingHints/KEY_COLOR_RENDERING RenderingHints/VALUE_COLOR_RENDER_QUALITY]))
+
 (defn blank!
   "Given an image space, colors the whole thing image buffer white, creating and
   setting a new image-buffer if one wasn't there. It also fills in some stats
@@ -102,9 +107,8 @@
                 (.createGraphics buf))
         ys (mapcat (partial map #(% 1)) (img-space :grid-polys))]
     (.setPaint gfx Color/WHITE)
-    (.setRenderingHint gfx
-      RenderingHints/KEY_ANTIALIASING
-      RenderingHints/VALUE_ANTIALIAS_ON)
+    (doseq [[k v] hints]
+      (.setRenderingHint gfx k v))
     (.fillRect gfx 0 0 (dec imgw) (dec imgh))
     (assoc img-space
       :image-buffer buf
@@ -154,7 +158,8 @@
           color (color-fn img-space norm-poly)
           origStroke (.getStroke gfx)]
       (.setPaint gfx color)
-      (.setStroke gfx (BasicStroke. thickness))
+      (.setStroke gfx (BasicStroke. thickness
+                        BasicStroke/CAP_ROUND BasicStroke/JOIN_ROUND))
       (.drawPolyline gfx xs zs (count norm-poly))
       (.setStroke gfx origStroke))
     img-space))
