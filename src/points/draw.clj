@@ -180,6 +180,11 @@
   ([_ _] (rand-color))
   ([] (Color. (rand-int 0x1000000))))
 
+(defn choose-rand-color
+  "Returns a color-fn which always returns the same color"
+  []
+  (constantly (rand-color)))
+
 (def gray "Always returns gray" (constantly Color/GRAY))
 (def black "Always returns black" (constantly Color/BLACK))
 (def blue "Always returns blue" (constantly Color/BLUE))

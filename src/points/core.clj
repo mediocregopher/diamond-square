@@ -1,4 +1,5 @@
 (ns points.core
+  (:gen-class)
   (:require [points.point :as point]
             [points.shape :as shape]
             [points.transform :as transform]
@@ -13,44 +14,31 @@
     :gird-polys #{}
     :image-dims [imgw imgh] })
 
-(comment
+(defn- rand-range
+  [min max]
+  (+ min (rand-int (inc (- max min)))))
 
-(require '[clojure.stacktrace :refer [e print-stack-trace]])
-(require '[clojure.pprint :refer [pprint]])
+(defn -main [& args]
+  (let [filename (nth args 0)
+        width (Integer/parseInt (nth args 1))
+        height (Integer/parseInt (nth args 2))]
 
-(defn point-in-orbit
-  [i points radius]
-  (let [radians (* i (/ (* 2 Math/PI) points))]
-    [(* radius (Math/cos radians)) (* radius (Math/sin radians)) 0]))
+    (-> (init-img-space width height)
+        (shape/fill-shape shape/sphere (rand-range 50 250))
+        (transform/scale-points (int (* 0.75 (min width height))))
+        (transform/random-rotate-points)
+        (point/conv-hull)
 
-(defn draw-orbit
-  [img-space points radius]
-  (doseq [i (range points)]
-    (let [light-source (point-in-orbit i points radius)]
-      (-> img-space
-        (draw/add-light-source light-source)
+        (draw/add-light-source [(rand-range (- width) width)
+                                (max width height)
+                                (rand-range (- height) height)])
         (draw/blank!)
-        (draw/blot! draw/poly! (draw/shaded draw/pink 0.1))
-        (draw/write! (str "/tmp/img" i ".png"))))))
+        (draw/blot!
+          (draw/compose
+            [draw/poly! (draw/shaded (draw/choose-rand-color) 0.1)]))
+        (draw/write! filename)
+        ((constantly nil)))))
 
-(try
-(-> (init-img-space 2000 2000)
-    (shape/fill-shape shape/sphere 100)
-    (transform/scale-points 1500)
-    (transform/random-rotate-points)
-    (point/conv-hull)
-    ;(transform/distort 0.1)
-
-    (draw/add-light-source [4000 4000 4000])
-    (draw/blank!)
-    (draw/blot!
-      (draw/compose
-        [draw/poly! (draw/shaded draw/rand-color 0.5)]))
-        ;[draw/line! draw/black 3]))
-    (draw/write! "/tmp/img.png")
-
-    (#(def last-img-space %))
-    )
-(catch Exception e (print-stack-trace e)))
-
+(comment
+  (-main "/tmp/img.png" "2000" "2000")
 )
