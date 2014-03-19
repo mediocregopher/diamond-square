@@ -192,6 +192,8 @@
     (squash 0 255 (+ offset (.getBlue color)))))
 
 (defn shaded
+  "returns a color-fn which takes into account light sources to determine the
+  brightness of the surface. Takes in a base color-fn"
   ([color-fn]
     (shaded color-fn 1))
   ([color-fn shading-scaler]
