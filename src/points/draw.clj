@@ -127,21 +127,21 @@
 (defn point!
   "Draws the given poly's points to the img-space using the given color
   function"
-  [img-space _ norm-poly color-fn]
-  (let [gfx (img-space :image-graphic)
-        color (color-fn img-space norm-poly)
-        points (set (flatten norm-poly))]
-  (.setPaint gfx color)
-  (reduce
-    (fn [gfx [normx normy normz]]
-      (.fillOval gfx
-        (- normx normy)
-        (- normz normy)
-        (* 2 normy)
-        (* 2 normy)) gfx)
-    (img-space :image-graphic)
-    norm-poly))
-  img-space)
+  ([img-space poly norm-poly color-fn]
+    (point! img-space poly norm-poly color-fn 1))
+  ([img-space _ norm-poly color-fn size]
+    (let [gfx (img-space :image-graphic)
+          color (color-fn img-space norm-poly)
+          points (set (flatten norm-poly))]
+    (.setPaint gfx color)
+    (reduce
+      (fn [gfx [normx normz]]
+        (.fillOval gfx
+          normx normz size size)
+          gfx)
+      (img-space :image-graphic)
+      norm-poly))
+    img-space))
 
 (defn line!
   "Draws the given poly's edges to the img-space using the given color function"
@@ -221,13 +221,13 @@
     [point! black])
   "
   [& args]
-  (fn [img-space poly]
+  (fn [img-space poly norm-poly]
     (reduce
       (fn [img-space arg-set]
         (let [draw-fn (first arg-set)
               color-fn (second arg-set)
               extra-args (drop 2 arg-set)]
-          (apply draw-fn img-space poly color-fn extra-args)))
+          (apply draw-fn img-space poly norm-poly color-fn extra-args)))
       img-space
       args)))
 
