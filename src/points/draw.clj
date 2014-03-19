@@ -39,14 +39,14 @@
 ; |
 ; v z (imgh)
 
-; While keeping the same relative shape and distances
+; While keeping the same relative shape and distances, but eliminating the y
+; axis
 
 (defn- norm-point
   "Normalizes a point from the original cartesian coordinate system into the
   coordinate system used for image creation"
   [imgw imgh gridw gridh [x y z]]
   [ (point/norm (- gridw) gridw 0 imgw x)
-    y ;(point/norm (- gridh) gridh 1 (int (* imgw 0.01)) y)
     (- imgh (point/norm (- gridh) gridh 0 imgh z)) ])
 
 (defn- norm-point-center
@@ -56,12 +56,12 @@
   (if (> imgw imgh)
     (let [cent-imgw (int (* gridw (/ imgh gridh)))
           pad (int (/ (- imgw cent-imgw) 2))
-          [x y z] (norm-point cent-imgw imgh gridw gridh [x y z])]
-      [(+ pad x) 0 z])
+          [x z] (norm-point cent-imgw imgh gridw gridh [x y z])]
+      [(+ pad x) z])
     (let [cent-imgh (int (* gridh (/ imgw gridw)))
           pad (int (/ (- imgh cent-imgh) 2))
-          [x y z] (norm-point imgw cent-imgh gridw gridh [x y z])]
-      [x 0 (+ pad z)])))
+          [x z] (norm-point imgw cent-imgh gridw gridh [x y z])]
+      [x (+ pad z)])))
 
 (defn- norm-points
   "Normalizes the given points from the 3d grid-space to the 2d image space"
@@ -149,8 +149,8 @@
     (line! img-space poly norm-poly color-fn 1))
   ([img-space _ norm-poly color-fn thickness]
     (let [gfx (img-space :image-graphic)
-          xs (int-array (map #(% 0) norm-poly))
-          zs (int-array (map #(% 2) norm-poly))
+          xs (int-array (map first norm-poly))
+          zs (int-array (map second norm-poly))
           color (color-fn img-space norm-poly)
           origStroke (.getStroke gfx)]
       (.setPaint gfx color)
@@ -163,8 +163,8 @@
   "Draws the given poly to the img-space using the given color function"
   [img-space poly norm-poly color-fn]
   (let [gfx (img-space :image-graphic)
-        xs (int-array (map #(% 0) norm-poly))
-        zs (int-array (map #(% 2) norm-poly))
+        xs (int-array (map first norm-poly))
+        zs (int-array (map second norm-poly))
         color (color-fn img-space poly norm-poly)]
     (.setPaint gfx color)
     (.fillPolygon gfx xs zs (count norm-poly)))

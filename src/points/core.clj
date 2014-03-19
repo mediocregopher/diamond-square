@@ -42,7 +42,7 @@
 
     (draw/add-light-source [4000 2000 4000])
     (draw/blank!)
-    (draw/blot! draw/poly! (draw/shaded draw/pink 0.5))
+    (draw/blot! draw/poly! (draw/shaded draw/blue 0.5))
     (draw/write! "/tmp/img.png")
 
     (#(def last-img-space %))
