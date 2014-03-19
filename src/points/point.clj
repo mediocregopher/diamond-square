@@ -29,6 +29,12 @@
   [A B nA nB x]
   (+ nA (/ (* (- x A) (- nB nA)) (- B A))))
 
+(defn norm-sqr
+  "Normalizes a point x in the range [A,B] to be in the range [nA,nB], but on
+  the quadratic scale"
+  [A B nA nB x]
+  (norm (* A A) (* B B) nA nB (* x x)))
+
 (defn tri-rotate
   "Rotates a point first about the x, then y, then z axiis by the number of
   radians given for each axis"

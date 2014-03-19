@@ -35,18 +35,18 @@
 
 (try
 (-> (init-img-space 2000 2000)
-    (shape/fill-shape shape/sphere 20)
+    (shape/fill-shape shape/sphere 100)
     (transform/scale-points 1500)
     (transform/random-rotate-points)
     (point/conv-hull)
-    (transform/distort 0.1)
+    ;(transform/distort 0.1)
 
-    (draw/add-light-source [4000 2000 4000])
+    (draw/add-light-source [4000 4000 4000])
     (draw/blank!)
     (draw/blot!
       (draw/compose
-        [draw/poly! (draw/shaded draw/blue 0.1)]
-        [draw/line! draw/black 3]))
+        [draw/poly! (draw/shaded draw/rand-color 0.5)]))
+        ;[draw/line! draw/black 3]))
     (draw/write! "/tmp/img.png")
 
     (#(def last-img-space %))

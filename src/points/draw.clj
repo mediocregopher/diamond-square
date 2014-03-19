@@ -213,7 +213,7 @@
             [pos closest farthest] [(light :pos) (light :min) (light :max)]
             dis (point/point-distance center pos)
             shade-ceil (* 127 shading-scaler)
-            offset (int (point/norm closest farthest shade-ceil -128 dis))]
+            offset (int (point/norm-sqr closest farthest shade-ceil -128 dis))]
         (color-offset base-color offset)))))
 
 (defn compose
